@@ -1,0 +1,57 @@
+<apex:page showHeader="false">
+    <html>
+        <head>
+            <link rel="stylesheet" href="//developers.google.com/maps/documentation/javascript/demos/demos.css"/>
+        </head>
+        <body>
+            <div id="map"></div>
+            <script>
+            var data;
+            var lexOrigin = 'https://{!$CurrentPage.parameters.lcHost}';
+            
+            // Tell LC when the VF is loaded.
+            function sendToLC(message) {
+                if(typeof(lexOrigin) != 'undefined'){
+                    parent.postMessage(message, lexOrigin);
+                }
+            }
+            sendToLC({'state':'LOADED', 'vfHost': "{!LEFT($CurrentPage.URL,FIND('/',$CurrentPage.URL,9))}"});
+            
+            // Handle call from LC
+            window.addEventListener("message", function(event) {
+                data = JSON.parse(event.data);
+                if(typeof(data.loadGoogleMap) != 'undefined'){
+                    var script = document.createElement("script");
+                    script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyDLrw96AqCjIRMipWgIm-3pqoRSwQrHtCs&callback=initMap";
+                    document.getElementsByTagName("head")[0].appendChild(script);
+                }
+            }, false);
+            
+            // Called back when Google Map is loaded
+            function initMap() {
+                function addMarker(feature) {
+                    var marker = new google.maps.Marker({
+                        position: feature.position,
+                        map: map
+                    });
+                    var infoWindow = new google.maps.InfoWindow({
+                        content: feature.markerText
+                    });
+                    
+                    marker.addListener('click', function() {
+                        infoWindow.open(map, marker);
+                    });
+                }
+
+                var map = new google.maps.Map(document.getElementById("map"), JSON.parse(data.mapOptions));
+                map.setCenter(data.mapOptionsCenter);
+                var mapData = data.mapData;
+                for(var i=0; i<mapData.length; i++){
+                    var myLatlng = new google.maps.LatLng(mapData[i].lat, mapData[i].lng);
+                    addMarker({position: myLatlng, markerText: mapData[i].markerText  });
+                }
+            }
+            </script>      
+        </body>
+    </html>
+</apex:page>
